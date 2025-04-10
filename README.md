@@ -1,2 +1,2 @@
-# sblog
+# smpb
 A simple blog
