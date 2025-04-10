@@ -1,5 +1,5 @@
 {
-  "name": "sblog",
+  "name": "smpb",
   "version": "0.0.1",
   "description": "This is a simple blog",
   "main": "cli/index.js",
@@ -8,8 +8,10 @@
   },
   "scripts": {
     "start": "tsx src/index.ts",
-    "build": "tsc"
+    "build": "tsc",
+    "prepare": "npm run build"
   },
+  "type": "module",
   "repository": {
     "type": "git",
     "url": "git+https://github.com/doesntit/sblog.git"
