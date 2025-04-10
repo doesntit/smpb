@@ -1,0 +1,2 @@
+# sblog
+A simple blog
