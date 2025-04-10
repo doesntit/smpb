@@ -1,0 +1,32 @@
+{
+  "name": "sblog",
+  "version": "0.0.1",
+  "description": "This is a simple blog",
+  "main": "cli/index.js",
+  "bin": {
+    "sblog": "cli/index.js"
+  },
+  "scripts": {
+    "start": "tsx src/index.ts",
+    "build": "tsc"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/doesntit/sblog.git"
+  },
+  "keywords": [],
+  "author": "Alec Liu",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/doesntit/sblog/issues"
+  },
+  "homepage": "https://github.com/doesntit/sblog#readme",
+  "devDependencies": {
+    "@types/node": "^22.14.0",
+    "tsx": "^4.19.3",
+    "typescript": "^5.8.3"
+  },
+  "dependencies": {
+    "commander": "^13.1.0"
+  }
+}
