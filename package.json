@@ -14,15 +14,15 @@
   "type": "module",
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/doesntit/sblog.git"
+    "url": "git+https://github.com/doesntit/smpb.git"
   },
   "keywords": [],
   "author": "Alec Liu",
   "license": "MIT",
   "bugs": {
-    "url": "https://github.com/doesntit/sblog/issues"
+    "url": "https://github.com/doesntit/smpb/issues"
   },
-  "homepage": "https://github.com/doesntit/sblog#readme",
+  "homepage": "https://github.com/doesntit/smpb#readme",
   "devDependencies": {
     "@types/node": "^22.14.0",
     "tsx": "^4.19.3",
