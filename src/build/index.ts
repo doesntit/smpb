@@ -1,7 +1,12 @@
 import fs from 'node:fs/promises';
 import path from 'node:path';
+import { fileURLToPath } from 'node:url';
 import prettier from 'prettier';
 import { confirm, convertMDData } from '../utils';
+
+const __dirname = path.dirname(fileURLToPath(import.meta.url))
+
+const htmlTpl = await fs.readFile(path.resolve(__dirname, '../template/index.html'), 'utf-8');
 
 const rootDir = process.cwd();
 
@@ -75,48 +80,119 @@ async function getAllMarkdownFiles(dirName: string): Promise<string[]> {
   return res;
 }
 
-// 将markdown文件转换为html，建立分类目录，复制页面目录到分类目录中，并将静态资源复制到对应目录中
-async function convertMarkdownToHtml(pathlist: string[]) {
-  const categories = [];
+type categoriesType = {
+  [key: string]: {
+    type: string
+    title: string
+    route: string
+    createTime: string
+    html: string
+  }[]
+}
+
+async function getCategories (pathlist: string[]) {
+  const categories: categoriesType = {};
   for (let item of pathlist) {
     const { html, metaData, staticResources } = await convertMDData(item);
-    const { type } = metaData;
+    const title = metaData.title || path.basename(item, '.md');
+    // 将title空格替换为短横
+    const folderName = title.replace(/\s+/g, '-');
+
+    const { type, category, createTime } = metaData;
+    const route = `${type === 'single' ? '' : `/${type}`}/${folderName}`;
+    if (category) {
+      categories[category] = [...categories[category] || [], { type, title, route, createTime, html }];
+    }
+    categories.Home = [...categories.Home || [], { type, title, route, createTime, html }];
+
     let baseDir = `${rootDir}/.html`;
     if (['article'].includes(type)) {
       baseDir = `${rootDir}/.html/${type}`;
       await fs.mkdir(`${rootDir}/.html/${type}`, { recursive: true });
     }
-    const title = metaData.title || path.basename(item, '.md');
-    // 将title空格替换为短横
-    const folderName = title.replace(/\s+/g, '-');
+
     await fs.mkdir(`${baseDir}/${folderName}`, { recursive: true });
     await fs.mkdir(`${baseDir}/${folderName}/static`, { recursive: true });
-
-    const output = `
-      <!DOCTYPE html>
-      <html>
-      <head><meta charset="utf-8"><title>Markdown Output</title></head>
-      <body>
-      ${html}
-      </body>
-      </html>
-        `.trim();
 
     for (let url of staticResources) {
       await fs.copyFile(url, `${baseDir}/${folderName}/static/${path.basename(url)}`);
     }
+    await fs.copyFile(path.resolve(__dirname, '../template/style.css'), `${baseDir}/${folderName}/static/style.css`)
+  }
+  return categories;
+}
+
+function sortNavItems (list: string[]) {
+  return list.sort((a, b) => {
+    if (a === 'About Me') {
+      return 1;
+    } else if (b === 'About Me') {
+      return -1;
+    } else {
+      return 0;
+    }
+  })
+}
+// 将markdown文件转换为html，建立分类目录，复制页面目录到分类目录中，并将静态资源复制到对应目录中
+async function convertMarkdownToHtml(pathlist: string[]) {
+  // const categories: categoriesType = {};
+  // 先获取到所有的分类
+  const categoriesList = await getCategories(pathlist);
+  let navItems = Object.keys(categoriesList);
+  navItems = sortNavItems(navItems);
+
+  // 生成通用导航栏
+  const navBar = navItems.reduce((navbar, item) => {
+    return `${navbar}\n<span><a href="/${item === 'Home' ? '' : item.replace(/\s+/g, '-')}">${item}</a></span>`
+  }, '');
+
+  // 生成分类列表
+  generateListAndIndex(categoriesList, navBar);
+
+  categoriesList.Home.forEach(async (item) => {
+    const { type, title, route, createTime, html } = item;
+    const folderName = title.replace(/\s+/g, '-');
+    const baseDir = ['article'].includes(type) ? `${rootDir}/.html/${type}` : `${rootDir}/.html`;
+    const output = htmlTpl
+    .replace(/\$baseUrl/, ['article'].includes(type) ? `/${type}/${folderName}/` : `/${folderName}/`)
+    .replace(/\$title/, title)
+    .replace(/\$content/, `<header><nav>${navBar}</nav></header>\n<article>${html}</article>`);
+
     const formattedHtml = await prettier.format(output, {
       parser: "html",  // 指定解析器为 HTML
       htmlWhitespaceSensitivity: "ignore",  // 对空白字符不敏感
     });
     await fs.writeFile(`${baseDir}/${folderName}/index.html`, formattedHtml);
-    // console.log(metaData);
-    console.log(staticResources);
-  }
+  });
 }
 
 // 统计分类, 生成分类列表html，生成首页，以及处理特殊页面
-function generateListAndIndex() { }
+async function generateListAndIndex(categories: categoriesType, navBar: string) {
+  for (let [category, value] of Object.entries(categories)) {
+    if (category !== 'Home' && value.some(c => c.type === 'single')) continue;
+    let folderPath = `${rootDir}/.html`;
+    if (category !== 'Home') {
+      folderPath = `${rootDir}/.html/${category.replace(/\s+/g, '-')}`;
+    }
+    await fs.mkdir(folderPath, { recursive: true });
+    await fs.mkdir(`${folderPath}/static`, { recursive: true });
+    await fs.copyFile(path.resolve(__dirname, '../template/style.css'), `${folderPath}/static/style.css`);
+    const output = htmlTpl
+    .replace(/\$baseUrl/, category === 'Home' ? '/' : `/${category.replace(/\s+/g, '-')}/`)
+    .replace(/\$title/, category)
+    .replace(/\$content/,
+      `<header><nav>${navBar}</nav></header>
+      <div class="category-list">
+        ${value.filter(item => item.type !== 'single').map(item => `<article class="category-item"><a href="${item.route}">${item.title}</a><small>${item.createTime}</small></article>`).join('\n')}
+      </div>`
+    );
+    const formattedHtml = await prettier.format(output, {
+      parser: "html",
+      htmlWhitespaceSensitivity: "ignore",
+    });
+    await fs.writeFile(`${folderPath}/index.html`, formattedHtml);
+  }
+}
 
 async function build() {
   try {

@@ -1,5 +1,6 @@
 import fs from 'node:fs/promises';
 import path from 'node:path';
+import formatDateTime from './date';
 
 // 转义 HTML 保留字符
 function escapeHTML(text: string): string {
@@ -32,6 +33,7 @@ type metaDataType = {
   title: string;
   category: string;
   type: string;
+  createTime: string;
 }
 
 function parseMetaData(metaStr: string[]): metaDataType {
@@ -39,6 +41,7 @@ function parseMetaData(metaStr: string[]): metaDataType {
     title: '',
     category: '',
     type: 'article',
+    createTime: '',
   };
   metaStr.forEach(item => {
     const [key, value] = item.split(':');
@@ -60,6 +63,7 @@ function parseMarkdown(content: string): { html: string; metaData: metaDataType;
     title: '',
     category: '',
     type: 'article',
+    createTime: '',
   };
 
   const staticResources: string[] = [];
@@ -188,17 +192,10 @@ function parseMarkdown(content: string): { html: string; metaData: metaDataType;
 // 主函数
 async function convertMDData(mdUrl: string): Promise<{ html: string; metaData: metaDataType; staticResources: string[] }> {
   const input = await fs.readFile(mdUrl, 'utf-8');
+  const stats = await fs.stat(mdUrl);
+  const birthTime = formatDateTime(new Date(stats.birthtime.toISOString()));
   const { html, metaData, staticResources } = parseMarkdown(input);
-//   const output = `
-// <!DOCTYPE html>
-// <html>
-// <head><meta charset="utf-8"><title>Markdown Output</title></head>
-// <body>
-// ${html}
-// </body>
-// </html>
-//   `.trim();
-  return { html, metaData, staticResources: staticResources.map(item => path.resolve(path.dirname(mdUrl), item)) };
+  return { html, metaData: { ...metaData, createTime: birthTime }, staticResources: staticResources.map(item => path.resolve(path.dirname(mdUrl), item)) };
 }
 
 export default convertMDData;
