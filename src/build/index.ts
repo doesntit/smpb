@@ -119,7 +119,18 @@ async function getCategories (pathlist: string[]) {
     }
     await fs.writeFile(`${baseDir}/${folderName}/static/style.css`, cssTpl);
   }
-  return categories;
+  const sorttedlist = Object.entries(categories).map(([key, value]) => {
+    return [key, value.sort((a, b) => {
+      if (a.createTime > b.createTime) {
+        return -1;
+      } else if (a.createTime < b.createTime) {
+        return 1;
+      } else {
+        return 0;
+      }
+    })];
+  });
+  return Object.fromEntries(sorttedlist);
 }
 
 function sortNavItems (list: string[]) {

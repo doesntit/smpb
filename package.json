@@ -19,7 +19,7 @@
     "type": "git",
     "url": "git+https://github.com/doesntit/smpb.git"
   },
-  "keywords": [],
+  "keywords": ["blog", "smpb", "markdown"],
   "author": "Alec Liu",
   "license": "MIT",
   "bugs": {
