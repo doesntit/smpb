@@ -2,11 +2,11 @@ import fs from 'node:fs/promises';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import prettier from 'prettier';
+import htmlTpl from '../template/index.html';
+import cssTpl from '../template/style.css';
 import { confirm, convertMDData } from '../utils';
 
-const __dirname = path.dirname(fileURLToPath(import.meta.url))
-
-const htmlTpl = await fs.readFile(path.resolve(__dirname, '../template/index.html'), 'utf-8');
+const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
 const rootDir = process.cwd();
 
@@ -117,7 +117,7 @@ async function getCategories (pathlist: string[]) {
     for (let url of staticResources) {
       await fs.copyFile(url, `${baseDir}/${folderName}/static/${path.basename(url)}`);
     }
-    await fs.copyFile(path.resolve(__dirname, '../template/style.css'), `${baseDir}/${folderName}/static/style.css`)
+    await fs.writeFile(`${baseDir}/${folderName}/static/style.css`, cssTpl);
   }
   return categories;
 }
@@ -176,7 +176,7 @@ async function generateListAndIndex(categories: categoriesType, navBar: string) 
     }
     await fs.mkdir(folderPath, { recursive: true });
     await fs.mkdir(`${folderPath}/static`, { recursive: true });
-    await fs.copyFile(path.resolve(__dirname, '../template/style.css'), `${folderPath}/static/style.css`);
+    await fs.writeFile(`${folderPath}/static/style.css`, cssTpl);
     const output = htmlTpl
     .replace(/\$baseUrl/, category === 'Home' ? '/' : `/${category.replace(/\s+/g, '-')}/`)
     .replace(/\$title/, category)

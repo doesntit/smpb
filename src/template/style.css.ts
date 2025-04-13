@@ -1,4 +1,4 @@
-html {
+export default `html {
   font-family: Fira Code,Monaco,Consolas,Ubuntu Mono,PingFang SC,Hiragino Sans GB,Microsoft YaHei,WenQuanYi Micro Hei,monospace,sans-serif;;
   font-size: 1em;
 }
@@ -71,4 +71,4 @@ article {
 
 article > a {
   display: block;
-}
+}`;

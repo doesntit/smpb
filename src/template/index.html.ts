@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+export default `<!DOCTYPE html>
 <html lang="en">
 <head>
   <base href="$baseUrl" />
@@ -10,4 +10,4 @@
 <body>
   $content
 </body>
-</html>
+</html>`;
