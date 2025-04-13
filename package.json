@@ -1,6 +1,6 @@
 {
   "name": "smpb",
-  "version": "0.0.8",
+  "version": "0.0.9",
   "description": "This is a simple blog",
   "main": "cli/index.js",
   "files": [
@@ -19,7 +19,11 @@
     "type": "git",
     "url": "git+https://github.com/doesntit/smpb.git"
   },
-  "keywords": ["blog", "smpb", "markdown"],
+  "keywords": [
+    "blog",
+    "smpb",
+    "markdown"
+  ],
   "author": "Alec Liu",
   "license": "MIT",
   "bugs": {
