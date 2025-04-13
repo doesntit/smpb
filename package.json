@@ -1,6 +1,6 @@
 {
   "name": "smpb",
-  "version": "0.0.6",
+  "version": "0.0.7",
   "description": "This is a simple blog",
   "main": "cli/index.js",
   "files": [
