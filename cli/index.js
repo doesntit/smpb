@@ -1,10 +1,10 @@
 #!/usr/bin/env node
 import { Command } from "commander";
-// import { createRequire } from "node:module";
-import { version } from '../package.json' assert { type: 'json' };
+import { createRequire } from "node:module";
+// import {version } from '../package.json' assert { type: 'json' };
 import build from "./build";
-// const require = createRequire(import.meta.url);
-// const version = require("../package.json").version;
+const require = createRequire(import.meta.url);
+const version = require("../package.json").version;
 const program = new Command();
 program
     .name("smpb")

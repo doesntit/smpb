@@ -4,7 +4,7 @@
   "description": "This is a simple blog",
   "main": "cli/index.js",
   "bin": {
-    "sblog": "cli/index.js"
+    "smpb": "cli/index.js"
   },
   "scripts": {
     "start": "tsx src/index.ts",
