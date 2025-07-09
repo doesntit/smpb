@@ -90,7 +90,7 @@ type categoriesType = {
   }[]
 }
 
-async function getCategories (pathlist: string[]) {
+async function getCategories (pathlist: string[]): Promise<categoriesType> {
   const categories: categoriesType = {};
   for (let item of pathlist) {
     const { html, metaData, staticResources } = await convertMDData(item);
@@ -178,7 +178,7 @@ async function convertMarkdownToHtml(pathlist: string[]) {
 }
 
 // 统计分类, 生成分类列表html，生成首页，以及处理特殊页面
-async function generateListAndIndex(categories: categoriesType, navBar: string) {
+async function generateListAndIndex(categories: categoriesType, navBar: string): Promise<void> {
   for (let [category, value] of Object.entries(categories)) {
     if (category !== 'Home' && value.some(c => c.type === 'single')) continue;
     let folderPath = `${rootDir}/.html`;

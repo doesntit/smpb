@@ -71,4 +71,22 @@ article {
 
 article > a {
   display: block;
-}`;
+}
+
+pre {
+  background: #2d2d2d;
+  color: #ccc;
+  padding: 1em;
+  border-radius: 8px;
+  overflow-x: auto;
+  font-size: 14px;
+  line-height: 1.5;
+}
+
+code {
+  font-family: Consolas, Monaco, "Fira Code", monospace;
+  background-color: #2d2d2d;
+  color: #ccc;
+}
+
+`;

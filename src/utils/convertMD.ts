@@ -100,7 +100,7 @@ function parseMarkdown(content: string): { html: string; metaData: metaDataType;
     // 代码块（多行）
     if (line.startsWith('```')) {
       if (!inCodeBlock) {
-        html += '<pre><code>\n';
+        html += '<pre><code>';
         inCodeBlock = true;
       } else {
         html += '</code></pre>\n';

@@ -96,7 +96,25 @@ article {
 
 article > a {
   display: block;
-}`;
+}
+
+pre {
+  background: #2d2d2d;
+  color: #ccc;
+  padding: 1em;
+  border-radius: 8px;
+  overflow-x: auto;
+  font-size: 14px;
+  line-height: 1.5;
+}
+
+code {
+  font-family: Consolas, Monaco, "Fira Code", monospace;
+  background-color: #2d2d2d;
+  color: #ccc;
+}
+
+`;
 var rl = readline.createInterface({
   input: process.stdin,
   output: process.stdout
@@ -200,7 +218,7 @@ function parseMarkdown(content) {
     }
     if (line.startsWith("```")) {
       if (!inCodeBlock) {
-        html += "<pre><code>\n";
+        html += "<pre><code>";
         inCodeBlock = true;
       } else {
         html += "</code></pre>\n";
