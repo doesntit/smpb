@@ -1,0 +1,121 @@
+html {
+  font-family: Fira Code,Monaco,Consolas,Ubuntu Mono,PingFang SC,Hiragino Sans GB,Microsoft YaHei,WenQuanYi Micro Hei,monospace,sans-serif;;
+  font-size: 1em;
+}
+
+body {
+  max-width: 72em;
+  margin: 0 auto;
+  padding: 1em;
+  line-height: 1.6em;
+}
+
+h1 {
+  text-align: center;
+}
+
+img {
+  max-width: 60%;
+  background-color: #fff;
+}
+
+p > img {
+  margin: 1em auto;
+  display: block;
+}
+
+/* 默认是明亮模式的样式 */
+body {
+  background-color: white;
+  color: #24291e;
+}
+
+nav {
+  margin-bottom: 2em;
+}
+
+nav span a {
+  text-decoration: underline;
+  cursor: pointer;
+}
+
+nav span::before {
+  content: '[ ';
+}
+
+nav span::after {
+  content: ' ]';
+}
+
+article {
+  margin-bottom: 1em;
+}
+
+article > a {
+  display: inline-block;
+}
+
+article > a+small {
+  display: block;
+}
+
+pre {
+  background-color: #f6f8fa;
+  color: #24292e;
+  padding: 1em;
+  border-radius: 8px;
+  overflow-x: auto;
+  font-size: 14px;
+  line-height: 1.5;
+}
+
+code {
+  font-family: Consolas, Monaco, "Fira Code", monospace;
+  background-color: #f6f8fa;
+  color: #24292e;
+}
+
+a {
+  color: #0366d6; /* 蓝色链接 */
+  text-decoration: underline;
+}
+
+a:hover {
+  color: #0550ae; /* 深一点的蓝，强调 */
+}
+
+a:visited {
+  color: #6f42c1; /* 紫色：常见的访问后颜色 */
+}
+
+/* 当系统处于暗黑模式时，应用以下样式 */
+@media (prefers-color-scheme: dark) {
+  body {
+    background-color: #1e1e1e;
+    color: #d4d4d4;
+  }
+
+  pre {
+    background-color: #2d2d2d; /* VSCode Dark+ 背景 */
+    color: #d4d4d4;
+  }
+
+  code {
+    background-color: #2d2d2d; /* VSCode Dark+ 背景 */
+    color: #d4d4d4;
+  }
+
+
+  a {
+    color: #4ea1ff; /* 浅蓝色，清晰但不刺眼 */
+    text-decoration: underline;
+  }
+
+  a:hover {
+    color: #82cfff; /* 更亮一点的蓝色 */
+  }
+
+  a:visited {
+    color: #c586c0; /* 紫色访问后链接，VSCode 主题风格 */
+  }
+}

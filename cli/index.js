@@ -1,137 +1,19 @@
 #!/usr/bin/env node
 import { Command } from 'commander';
 import { createRequire } from 'node:module';
-import fs2 from 'node:fs/promises';
-import path2 from 'node:path';
-import { fileURLToPath } from 'node:url';
+import fs3 from 'node:fs/promises';
+import path3 from 'node:path';
 import prettier from 'prettier';
+import chalk from 'chalk';
 import readline from 'readline';
+import fs2 from 'fs';
+import path2 from 'path';
+import { fileURLToPath } from 'url';
 
-// src/template/index.html.ts
-var index_html_default = `<!DOCTYPE html>
-<html lang="en">
-<head>
-  <base href="$baseUrl" />
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>$title</title>
-  <link rel="stylesheet" href="./static/style.css" />
-</head>
-<body>
-  $content
-</body>
-</html>`;
-
-// src/template/style.css.ts
-var style_css_default = `html {
-  font-family: Fira Code,Monaco,Consolas,Ubuntu Mono,PingFang SC,Hiragino Sans GB,Microsoft YaHei,WenQuanYi Micro Hei,monospace,sans-serif;;
-  font-size: 1em;
-}
-
-body {
-  max-width: 72em;
-  margin: 0 auto;
-  padding: 1em;
-  line-height: 1.6em;
-}
-
-h1 {
-  text-align: center;
-}
-
-img {
-  max-width: 60%;
-  background-color: #fff;
-}
-
-p > img {
-  margin: 1em auto;
-  display: block;
-}
-
-/* \u9ED8\u8BA4\u662F\u660E\u4EAE\u6A21\u5F0F\u7684\u6837\u5F0F */
-body {
-  background-color: white;
-  color: black;
-}
-
-/* \u5F53\u7CFB\u7EDF\u5904\u4E8E\u6697\u9ED1\u6A21\u5F0F\u65F6\uFF0C\u5E94\u7528\u4EE5\u4E0B\u6837\u5F0F */
-@media (prefers-color-scheme: dark) {
-  body {
-      background-color: #282828;
-      color: #eaeaea;
-  }
-}
-
-nav {
-  margin-bottom: 1em;
-}
-
-nav span {
-  margin-right: 1em;
-}
-
-nav span a {
-  padding: 0.5em;
-  color: #007bff;
-  text-decoration: underline;
-  cursor: pointer;
-}
-
-nav span a:visited {
-  color: grey;
-}
-
-nav span::before {
-  content: '[';
-}
-
-nav span::after {
-  content: ']';
-}
-
-article {
-  margin-bottom: 1em;
-}
-
-article > a {
-  display: block;
-}
-
-pre {
-  background: #2d2d2d;
-  color: #ccc;
-  padding: 1em;
-  border-radius: 8px;
-  overflow-x: auto;
-  font-size: 14px;
-  line-height: 1.5;
-}
-
-code {
-  font-family: Consolas, Monaco, "Fira Code", monospace;
-  background-color: #2d2d2d;
-  color: #ccc;
-}
-
-`;
-var rl = readline.createInterface({
+readline.createInterface({
   input: process.stdin,
   output: process.stdout
 });
-function confirm(message) {
-  return new Promise((resolve, reject) => {
-    rl.question(message, (answer) => {
-      rl.close();
-      if (answer.toLowerCase() === "y" || answer.toLowerCase() === "yes") {
-        resolve(true);
-      } else {
-        reject("\u64CD\u4F5C\u5DF2\u53D6\u6D88");
-      }
-    });
-  });
-}
-var confirm_default = confirm;
 
 // src/utils/date.ts
 function formatDateTime(date) {
@@ -153,7 +35,7 @@ function parseInline(text, collect) {
   text = text.replace(/!\[(.*?)\]\((.*?)\)/g, (_, alt, url) => {
     collect?.(url);
     if (!url.startsWith("http")) {
-      url = `./static/${path2.basename(url)}`;
+      url = `static/${path3.basename(url)}`;
     }
     return `<img src="${url}" alt="${alt}">`;
   });
@@ -168,7 +50,8 @@ function parseMetaData(metaStr) {
     title: "",
     category: "",
     type: "article",
-    createTime: ""
+    createTime: "",
+    editTime: ""
   };
   metaStr.forEach((item) => {
     const [key, value] = item.split(":");
@@ -188,7 +71,8 @@ function parseMarkdown(content) {
     title: "",
     category: "",
     type: "article",
-    createTime: ""
+    createTime: "",
+    editTime: ""
   };
   const staticResources = [];
   function collectStaticResources(url) {
@@ -300,21 +184,78 @@ function parseMarkdown(content) {
   };
 }
 async function convertMDData(mdUrl) {
-  const input = await fs2.readFile(mdUrl, "utf-8");
-  const stats = await fs2.stat(mdUrl);
+  const input = await fs3.readFile(mdUrl, "utf-8");
+  const stats = await fs3.stat(mdUrl);
   const birthTime = date_default(new Date(stats.birthtime.toISOString()));
+  const editTime = date_default(new Date(stats.mtime.toISOString()));
   const { html, metaData, staticResources } = parseMarkdown(input);
-  return { html, metaData: { ...metaData, createTime: birthTime }, staticResources: staticResources.map((item) => path2.resolve(path2.dirname(mdUrl), item)) };
+  return { html, metaData: { ...metaData, createTime: birthTime, editTime }, staticResources: staticResources.map((item) => path3.resolve(path3.dirname(mdUrl), item)) };
 }
 var convertMD_default = convertMDData;
+function findPkgRoot(startDir) {
+  let cur = startDir;
+  while (true) {
+    if (fs2.existsSync(path2.join(cur, "package.json"))) return cur;
+    const parent = path2.dirname(cur);
+    if (parent === cur) break;
+    cur = parent;
+  }
+  return null;
+}
+function resolveTemplateDir() {
+  const __filename = fileURLToPath(import.meta.url);
+  const here = path2.dirname(__filename);
+  const fromEnv = process.env.TEMPLATE_DIR ? path2.resolve(process.env.TEMPLATE_DIR) : null;
+  const pkgRoot = findPkgRoot(here);
+  const candidates = [
+    fromEnv,
+    // 0) 显式指定
+    path2.join(here, "templates"),
+    // 1) 与当前文件同级（运行期 A 或 B）
+    pkgRoot ? path2.join(pkgRoot, "templates") : null
+    // 2) 包根/templates（开发期）
+  ].filter(Boolean);
+  for (const p of candidates) {
+    if (fs2.existsSync(p)) return p;
+  }
+  throw new Error(
+    `templates/ not found. Searched:
+${candidates.join("\n")}`
+  );
+}
 
 // src/build/index.ts
-path2.dirname(fileURLToPath(import.meta.url));
-var rootDir = process.cwd();
-async function dirExists(dirPath) {
-  const fullPath = path2.resolve(dirPath);
+var rootDir = "";
+var htmlTpl = "";
+var cssTplPath = "";
+var faviconFilePaths = [];
+async function copyFavicoFiles(currentFolder) {
+  for (const faviconFilePath of faviconFilePaths) {
+    const basename = path3.basename(faviconFilePath);
+    const target = path3.resolve(currentFolder, basename);
+    await fs3.copyFile(faviconFilePath, target);
+  }
+}
+async function copyStaticFiles() {
+  const htmlDir = path3.resolve(rootDir, "../html");
+  await copyFavicoFiles(htmlDir);
+  await fs3.copyFile(cssTplPath, path3.resolve(htmlDir, "style.css"));
+}
+async function getTemplates() {
+  const templatePath = resolveTemplateDir();
+  const htmlTplPath = path3.resolve(templatePath, "./index.html");
+  cssTplPath = path3.resolve(templatePath, "./style.css");
+  faviconFilePaths = ["apple-touch-icon.png", "favicon-16x16.png", "favicon-32x32.png", "favicon.ico"].map((filename) => path3.resolve(templatePath, filename));
   try {
-    const stat = await fs2.stat(fullPath);
+    htmlTpl = await fs3.readFile(htmlTplPath, { encoding: "utf8" });
+  } catch (e) {
+    console.error(e);
+  }
+}
+async function dirExists(dirPath) {
+  const fullPath = path3.resolve(dirPath);
+  try {
+    const stat = await fs3.stat(fullPath);
     if (!stat.isDirectory()) {
       throw new Error(`Path "${fullPath}" exists but is not a directory.`);
     }
@@ -323,34 +264,43 @@ async function dirExists(dirPath) {
     return false;
   }
 }
+async function checkRootDir(path4) {
+  const rootDirExist = await dirExists(path4);
+  if (rootDirExist) {
+    return;
+  }
+  throw new Error(`${path4} not exist, please create work folder first.`);
+}
 async function clearHtmlDir(htmlDir) {
   const htmlDirExists = await dirExists(htmlDir);
   if (!htmlDirExists) {
     return;
   }
   try {
-    await confirm_default(".html\u76EE\u5F55\u5DF2\u5B58\u5728\uFF0C\u662F\u5426\u5220\u9664\uFF1F[(Y)es/(N)o]:");
-    await fs2.rm(htmlDir, { recursive: true });
+    await fs3.rm(htmlDir, { recursive: true });
   } catch (e) {
     throw e;
   }
 }
 async function createHtmlDir() {
-  const htmlDir = `${rootDir}/.html`;
+  const htmlDir = path3.resolve(rootDir, "../html");
   await clearHtmlDir(htmlDir);
-  await fs2.mkdir(htmlDir);
+  await fs3.mkdir(htmlDir, { recursive: true });
+  return htmlDir;
 }
 async function getAllMarkdownFiles(dirName) {
-  const fullPath = path2.resolve(dirName);
+  const fullPath = path3.resolve(dirName);
+  const stat = await fs3.lstat(fullPath);
+  if (stat.isSymbolicLink()) return [];
   const res = [];
-  const list = await fs2.readdir(fullPath);
+  const list = await fs3.readdir(fullPath);
   for (let item of list) {
-    const itemPath = path2.resolve(fullPath, item);
-    const stat = await fs2.stat(itemPath);
-    if (stat.isDirectory()) {
+    const itemPath = path3.resolve(fullPath, item);
+    const stat2 = await fs3.stat(itemPath);
+    if (stat2.isDirectory()) {
       const subList = await getAllMarkdownFiles(itemPath);
       res.push(...subList);
-    } else if (stat.isFile() && item.endsWith(".md")) {
+    } else if (stat2.isFile() && item.endsWith(".md")) {
       res.push(itemPath);
     }
   }
@@ -360,25 +310,24 @@ async function getCategories(pathlist) {
   const categories = {};
   for (let item of pathlist) {
     const { html, metaData, staticResources } = await convertMD_default(item);
-    const title = metaData.title || path2.basename(item, ".md");
+    const title = metaData.title || path3.basename(item, ".md");
     const folderName = title.replace(/\s+/g, "-");
-    const { type, category, createTime } = metaData;
+    const { type, category, createTime, editTime } = metaData;
     const route = `${type === "single" ? "" : `/${type}`}/${folderName}`;
     if (category) {
-      categories[category] = [...categories[category] || [], { type, title, route, createTime, html }];
+      categories[category] = [...categories[category] || [], { type, title, route, createTime, editTime, html }];
     }
-    categories.Home = [...categories.Home || [], { type, title, route, createTime, html }];
-    let baseDir = `${rootDir}/.html`;
+    categories.Home = [...categories.Home || [], { type, title, route, createTime, editTime, html }];
+    let baseDir = path3.resolve(rootDir, "../html");
     if (["article"].includes(type)) {
-      baseDir = `${rootDir}/.html/${type}`;
-      await fs2.mkdir(`${rootDir}/.html/${type}`, { recursive: true });
+      baseDir = `${baseDir}/${type}`;
+      await fs3.mkdir(`${baseDir}/${type}`, { recursive: true });
     }
-    await fs2.mkdir(`${baseDir}/${folderName}`, { recursive: true });
-    await fs2.mkdir(`${baseDir}/${folderName}/static`, { recursive: true });
+    await fs3.mkdir(`${baseDir}/${folderName}`, { recursive: true });
+    await fs3.mkdir(`${baseDir}/${folderName}/static`, { recursive: true });
     for (let url of staticResources) {
-      await fs2.copyFile(url, `${baseDir}/${folderName}/static/${path2.basename(url)}`);
+      await fs3.copyFile(url, `${baseDir}/${folderName}/static/${path3.basename(url)}`);
     }
-    await fs2.writeFile(`${baseDir}/${folderName}/static/style.css`, style_css_default);
   }
   const sorttedlist = Object.entries(categories).map(([key, value]) => {
     return [key, value.sort((a, b) => {
@@ -413,11 +362,12 @@ async function convertMarkdownToHtml(pathlist) {
 <span><a href="/${item === "Home" ? "" : item.replace(/\s+/g, "-")}">${item}</a></span>`;
   }, "");
   generateListAndIndex(categoriesList, navBar);
-  categoriesList.Home.forEach(async (item) => {
+  for (let item of categoriesList.Home) {
     const { type, title, route, createTime, html } = item;
     const folderName = title.replace(/\s+/g, "-");
-    const baseDir = ["article"].includes(type) ? `${rootDir}/.html/${type}` : `${rootDir}/.html`;
-    const output = index_html_default.replace(/\$baseUrl/, ["article"].includes(type) ? `/${type}/${folderName}/` : `/${folderName}/`).replace(/\$title/, title).replace(/\$content/, `<header><nav>${navBar}</nav></header>
+    let baseDir = path3.resolve(rootDir, "../html");
+    baseDir = ["article"].includes(type) ? `${baseDir}/${type}` : baseDir;
+    const output = htmlTpl.replace(/\$baseUrl/, ["article"].includes(type) ? `/${type}/${folderName}/` : `/${folderName}/`).replace(/\$title/, title).replace(/\$content/, `<header><nav>${navBar}</nav></header>
 <article>${html}</article>`);
     const formattedHtml = await prettier.format(output, {
       parser: "html",
@@ -425,40 +375,43 @@ async function convertMarkdownToHtml(pathlist) {
       htmlWhitespaceSensitivity: "ignore"
       // 对空白字符不敏感
     });
-    await fs2.writeFile(`${baseDir}/${folderName}/index.html`, formattedHtml);
-  });
+    await fs3.writeFile(`${baseDir}/${folderName}/index.html`, formattedHtml);
+  }
 }
 async function generateListAndIndex(categories, navBar) {
   for (let [category, value] of Object.entries(categories)) {
     if (category !== "Home" && value.some((c) => c.type === "single")) continue;
-    let folderPath = `${rootDir}/.html`;
+    let folderPath = path3.resolve(rootDir, "../html");
     if (category !== "Home") {
-      folderPath = `${rootDir}/.html/${category.replace(/\s+/g, "-")}`;
+      folderPath = `${folderPath}/${category.replace(/\s+/g, "-")}`;
     }
-    await fs2.mkdir(folderPath, { recursive: true });
-    await fs2.mkdir(`${folderPath}/static`, { recursive: true });
-    await fs2.writeFile(`${folderPath}/static/style.css`, style_css_default);
-    const output = index_html_default.replace(/\$baseUrl/, category === "Home" ? "/" : `/${category.replace(/\s+/g, "-")}/`).replace(/\$title/, category).replace(
+    await fs3.mkdir(folderPath, { recursive: true });
+    await fs3.mkdir(`${folderPath}/static`, { recursive: true });
+    const output = htmlTpl.replace(/\$baseUrl/, category === "Home" ? "/" : `/${category.replace(/\s+/g, "-")}/`).replace(/\$title/, category).replace(
       /\$content/,
       `<header><nav>${navBar}</nav></header>
       <div class="category-list">
-        ${value.filter((item) => item.type !== "single").map((item) => `<article class="category-item"><a href="${item.route}">${item.title}</a><small>${item.createTime}</small></article>`).join("\n")}
+        ${value.filter((item) => item.type !== "single").map((item) => `<article class="category-item"><a href="${item.route}">${item.title}</a><small title="${item.editTime}">${item.createTime}</small></article>`).join("\n")}
       </div>`
     );
     const formattedHtml = await prettier.format(output, {
       parser: "html",
       htmlWhitespaceSensitivity: "ignore"
     });
-    await fs2.writeFile(`${folderPath}/index.html`, formattedHtml);
+    await fs3.writeFile(`${folderPath}/index.html`, formattedHtml);
   }
 }
-async function build() {
+async function build(rootPath) {
+  rootDir = path3.resolve(rootPath);
   try {
+    await checkRootDir(rootDir);
     await createHtmlDir();
     const mdFiles = await getAllMarkdownFiles(rootDir);
+    await getTemplates();
+    await copyStaticFiles();
     await convertMarkdownToHtml(mdFiles);
   } catch (e) {
-    console.error(e);
+    console.error(chalk.red(e));
   }
 }
 var build_default = build;
@@ -468,8 +421,11 @@ var require2 = createRequire(import.meta.url);
 var version = require2("../package.json").version;
 var program = new Command();
 program.name("smpb").description("A simple blog application").version(version);
-program.command("build").description("Build the project").action(() => {
-  build_default();
+program.command("build [path]").description("Build the project").action((path4 = "./") => {
+  console.log(`smpb version: ${version}`);
+  console.time("Compile");
+  build_default(path4);
+  console.timeEnd("Compile");
 });
 program.command("publish").description("Publish the project").action(() => {
   console.log("Publishing...");

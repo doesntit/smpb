@@ -17,12 +17,15 @@ program
 
 // build 子命令
 program
-  .command('build')
+  .command('build [path]')
   .description('Build the project')
-  .action(() => {
+  .action((path = './') => {
     // console.log('Building...');
+    console.log(`smpb version: ${version}`)
+    console.time('Compile')
     // 你的构建逻辑
-    build();
+    build(path);
+    console.timeEnd('Compile')
   });
 
 // publish 子命令

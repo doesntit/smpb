@@ -1,18 +1,36 @@
 import fs from 'node:fs/promises';
 import path from 'node:path';
-import { fileURLToPath } from 'node:url';
+// import { fileURLToPath } from 'node:url';
 import prettier from 'prettier';
-import htmlTpl from '../template/index.html';
-import cssTpl from '../template/style.css';
-import { confirm, convertMDData } from '../utils';
+import chalk from 'chalk';
+import { confirm, convertMDData, resolveTemplateDir } from '../utils';
 
-const __dirname = path.dirname(fileURLToPath(import.meta.url));
+// const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
-const rootDir = process.cwd();
+// const rootDir = process.cwd();
+let rootDir = '';
+
+let htmlTpl = '';
+let cssTplPath = '';
+let faviconFilePaths: string[] = [];
+
+async function copyFavicoFiles (currentFolder: string) {
+  for (const faviconFilePath of faviconFilePaths) {
+    const basename = path.basename(faviconFilePath);
+    const target = path.resolve(currentFolder, basename);
+    await fs.copyFile(faviconFilePath, target);
+  }
+}
+
+async function copyStaticFiles () {
+  const htmlDir = path.resolve(rootDir, '../html');
+  await copyFavicoFiles(htmlDir);
+  await fs.copyFile(cssTplPath, path.resolve(htmlDir, 'style.css'));
+}
 
 /**
  * 期望输出的目录结构为
- * - .html
+ * - html
  *    index.html
  *  - static
  *  - article
@@ -27,7 +45,18 @@ const rootDir = process.cwd();
  *    - static
  */
 
-// const files: string[] = await fs.readdir(rootDir);
+async function getTemplates() {
+  const templatePath = resolveTemplateDir();
+  const htmlTplPath = path.resolve(templatePath, './index.html');
+  cssTplPath = path.resolve(templatePath, './style.css');
+  faviconFilePaths = ['apple-touch-icon.png', 'favicon-16x16.png', 'favicon-32x32.png', 'favicon.ico']
+    .map(filename => path.resolve(templatePath, filename));
+  try {
+    htmlTpl = await fs.readFile(htmlTplPath, { encoding: 'utf8' });
+  } catch (e) {
+    console.error(e);
+  }
+}
 
 async function dirExists(dirPath: string): Promise<boolean> {
   const fullPath = path.resolve(dirPath);
@@ -42,6 +71,14 @@ async function dirExists(dirPath: string): Promise<boolean> {
   }
 }
 
+async function checkRootDir(path: string) {
+  const rootDirExist = await dirExists(path);
+  if (rootDirExist) {
+    return;
+  }
+  throw new Error(`${path} not exist, please create work folder first.`)
+}
+
 async function clearHtmlDir(htmlDir: string) {
   const htmlDirExists = await dirExists(htmlDir);
   if (!htmlDirExists) {
@@ -49,7 +86,7 @@ async function clearHtmlDir(htmlDir: string) {
   }
 
   try {
-    await confirm('.html目录已存在，是否删除？[(Y)es/(N)o]:');
+    // await confirm('.html目录已存在，是否删除？[(Y)es/(N)o]:');
     await fs.rm(htmlDir, { recursive: true });
   } catch (e) {
     throw e;
@@ -58,15 +95,22 @@ async function clearHtmlDir(htmlDir: string) {
 
 // 在工作目录下建立html目录，如果已存在，则经用户手动确认后删除
 async function createHtmlDir() {
-  const htmlDir = `${rootDir}/.html`;
+  const htmlDir = path.resolve(rootDir, '../html');
   await clearHtmlDir(htmlDir);
-  await fs.mkdir(htmlDir);
+  await fs.mkdir(htmlDir, { recursive: true });
+  return htmlDir;
 }
+
+const pathReaded: string[]  = [];
 // 递归获取根目录下所有的markdown文件
 async function getAllMarkdownFiles(dirName: string): Promise<string[]> {
   const fullPath = path.resolve(dirName);
+  const stat = await fs.lstat(fullPath);
+  if (stat.isSymbolicLink()) return [];
+  pathReaded.push(fullPath);
   const res = [];
   const list = await fs.readdir(fullPath);
+  // const filteredList = filterDistFolder(list, fullPath);
   for (let item of list) {
     const itemPath = path.resolve(fullPath, item);
     const stat = await fs.stat(itemPath);
@@ -86,6 +130,7 @@ type categoriesType = {
     title: string
     route: string
     createTime: string
+    editTime: string
     html: string
   }[]
 }
@@ -98,17 +143,17 @@ async function getCategories (pathlist: string[]): Promise<categoriesType> {
     // 将title空格替换为短横
     const folderName = title.replace(/\s+/g, '-');
 
-    const { type, category, createTime } = metaData;
+    const { type, category, createTime, editTime } = metaData;
     const route = `${type === 'single' ? '' : `/${type}`}/${folderName}`;
     if (category) {
-      categories[category] = [...categories[category] || [], { type, title, route, createTime, html }];
+      categories[category] = [...categories[category] || [], { type, title, route, createTime, editTime, html }];
     }
-    categories.Home = [...categories.Home || [], { type, title, route, createTime, html }];
+    categories.Home = [...categories.Home || [], { type, title, route, createTime, editTime, html }];
 
-    let baseDir = `${rootDir}/.html`;
+    let baseDir = path.resolve(rootDir, '../html');
     if (['article'].includes(type)) {
-      baseDir = `${rootDir}/.html/${type}`;
-      await fs.mkdir(`${rootDir}/.html/${type}`, { recursive: true });
+      baseDir = `${baseDir}/${type}`;
+      await fs.mkdir(`${baseDir}/${type}`, { recursive: true });
     }
 
     await fs.mkdir(`${baseDir}/${folderName}`, { recursive: true });
@@ -117,7 +162,6 @@ async function getCategories (pathlist: string[]): Promise<categoriesType> {
     for (let url of staticResources) {
       await fs.copyFile(url, `${baseDir}/${folderName}/static/${path.basename(url)}`);
     }
-    await fs.writeFile(`${baseDir}/${folderName}/static/style.css`, cssTpl);
   }
   const sorttedlist = Object.entries(categories).map(([key, value]) => {
     return [key, value.sort((a, b) => {
@@ -160,10 +204,11 @@ async function convertMarkdownToHtml(pathlist: string[]) {
   // 生成分类列表
   generateListAndIndex(categoriesList, navBar);
 
-  categoriesList.Home.forEach(async (item) => {
+  for (let item of categoriesList.Home) {
     const { type, title, route, createTime, html } = item;
     const folderName = title.replace(/\s+/g, '-');
-    const baseDir = ['article'].includes(type) ? `${rootDir}/.html/${type}` : `${rootDir}/.html`;
+    let baseDir = path.resolve(rootDir, '../html');
+    baseDir = ['article'].includes(type) ? `${baseDir}/${type}` : baseDir;
     const output = htmlTpl
     .replace(/\$baseUrl/, ['article'].includes(type) ? `/${type}/${folderName}/` : `/${folderName}/`)
     .replace(/\$title/, title)
@@ -174,27 +219,26 @@ async function convertMarkdownToHtml(pathlist: string[]) {
       htmlWhitespaceSensitivity: "ignore",  // 对空白字符不敏感
     });
     await fs.writeFile(`${baseDir}/${folderName}/index.html`, formattedHtml);
-  });
+  }
 }
 
 // 统计分类, 生成分类列表html，生成首页，以及处理特殊页面
 async function generateListAndIndex(categories: categoriesType, navBar: string): Promise<void> {
   for (let [category, value] of Object.entries(categories)) {
     if (category !== 'Home' && value.some(c => c.type === 'single')) continue;
-    let folderPath = `${rootDir}/.html`;
+    let folderPath = path.resolve(rootDir, '../html');
     if (category !== 'Home') {
-      folderPath = `${rootDir}/.html/${category.replace(/\s+/g, '-')}`;
+      folderPath = `${folderPath}/${category.replace(/\s+/g, '-')}`;
     }
     await fs.mkdir(folderPath, { recursive: true });
     await fs.mkdir(`${folderPath}/static`, { recursive: true });
-    await fs.writeFile(`${folderPath}/static/style.css`, cssTpl);
     const output = htmlTpl
     .replace(/\$baseUrl/, category === 'Home' ? '/' : `/${category.replace(/\s+/g, '-')}/`)
     .replace(/\$title/, category)
     .replace(/\$content/,
       `<header><nav>${navBar}</nav></header>
       <div class="category-list">
-        ${value.filter(item => item.type !== 'single').map(item => `<article class="category-item"><a href="${item.route}">${item.title}</a><small>${item.createTime}</small></article>`).join('\n')}
+        ${value.filter(item => item.type !== 'single').map(item => `<article class="category-item"><a href="${item.route}">${item.title}</a><small title="${item.editTime}">${item.createTime}</small></article>`).join('\n')}
       </div>`
     );
     const formattedHtml = await prettier.format(output, {
@@ -205,13 +249,17 @@ async function generateListAndIndex(categories: categoriesType, navBar: string):
   }
 }
 
-async function build() {
+async function build(rootPath: string) {
+  rootDir = path.resolve(rootPath);
   try {
+    await checkRootDir(rootDir);
     await createHtmlDir();
     const mdFiles = await getAllMarkdownFiles(rootDir);
+    await getTemplates();
+    await copyStaticFiles();
     await convertMarkdownToHtml(mdFiles);
   } catch (e) {
-    console.error(e);
+    console.error(chalk.red(e));
   }
 }
 

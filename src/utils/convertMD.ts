@@ -18,7 +18,7 @@ function parseInline(text: string, collect?: (str: string) => void): string {
     collect?.(url);
     // 将静态资源替换为相对于自身的静态资源目录相对路径
     if (!url.startsWith('http')) {
-      url = `./static/${path.basename(url)}`
+      url = `static/${path.basename(url)}`
     }
     return `<img src="${url}" alt="${alt}">`;
   });
@@ -34,6 +34,7 @@ type metaDataType = {
   category: string;
   type: string;
   createTime: string;
+  editTime: string;
 }
 
 function parseMetaData(metaStr: string[]): metaDataType {
@@ -42,6 +43,7 @@ function parseMetaData(metaStr: string[]): metaDataType {
     category: '',
     type: 'article',
     createTime: '',
+    editTime: '',
   };
   metaStr.forEach(item => {
     const [key, value] = item.split(':');
@@ -64,6 +66,7 @@ function parseMarkdown(content: string): { html: string; metaData: metaDataType;
     category: '',
     type: 'article',
     createTime: '',
+    editTime: '',
   };
 
   const staticResources: string[] = [];
@@ -194,8 +197,9 @@ async function convertMDData(mdUrl: string): Promise<{ html: string; metaData: m
   const input = await fs.readFile(mdUrl, 'utf-8');
   const stats = await fs.stat(mdUrl);
   const birthTime = formatDateTime(new Date(stats.birthtime.toISOString()));
+  const editTime = formatDateTime(new Date(stats.mtime.toISOString()));
   const { html, metaData, staticResources } = parseMarkdown(input);
-  return { html, metaData: { ...metaData, createTime: birthTime }, staticResources: staticResources.map(item => path.resolve(path.dirname(mdUrl), item)) };
+  return { html, metaData: { ...metaData, createTime: birthTime, editTime }, staticResources: staticResources.map(item => path.resolve(path.dirname(mdUrl), item)) };
 }
 
 export default convertMDData;
